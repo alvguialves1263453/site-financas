@@ -37,13 +37,13 @@ function UserSelector() {
       <button 
         className="btn btn-secondary"
         onClick={() => setShowUserList(!showUserList)}
-        style={{ gap: '0.5rem' }}
+        style={{ gap: '0.25rem', padding: '0.375rem 0.625rem', fontSize: '0.75rem' }}
       >
-        <User size={18} />
-        <span>{current?.name || 'Selecionar'}</span>
+        <User size={14} />
+        <span>{current?.name || 'User'}</span>
         <span style={{ 
-          width: 12, 
-          height: 12, 
+          width: 8, 
+          height: 8, 
           borderRadius: '50%', 
           background: current?.color || '#6366f1',
           display: 'inline-block'
@@ -218,20 +218,20 @@ function Totalizer() {
 
 function TabNav() {
   const tabs = [
-    { path: '/', icon: Wallet, label: 'Dashboard' },
-    { path: '/entradas', icon: TrendingUp, label: 'Entradas' },
-    { path: '/gastos', icon: TrendingDown, label: 'Gastos' },
-    { path: '/parcelamentos', icon: CreditCard, label: 'Parcelas' },
-    { path: '/categorias', icon: PieChart, label: 'Categorias' },
-    { path: '/fixos', icon: Calendar, label: 'Fixos' },
-    { path: '/historico', icon: History, label: 'Histórico' },
+    { path: '/', icon: Wallet, label: 'Dash' },
+    { path: '/entradas', icon: TrendingUp, label: 'Entr' },
+    { path: '/gastos', icon: TrendingDown, label: 'Gast' },
+    { path: '/parcelamentos', icon: CreditCard, label: 'Parc' },
+    { path: '/categorias', icon: PieChart, label: 'Cat' },
+    { path: '/fixos', icon: Calendar, label: 'Fix' },
+    { path: '/historico', icon: History, label: 'Hist' },
   ];
 
   return (
     <div className="tabs">
       {tabs.map(tab => (
         <NavLink key={tab.path} to={tab.path} className={({ isActive }) => `tab ${isActive ? 'active' : ''}`}>
-          <tab.icon size={18} />
+          <tab.icon size={14} />
           {tab.label}
         </NavLink>
       ))}
@@ -884,7 +884,7 @@ function AppContent() {
         <header className="header">
           <div className="header-content">
             <div className="logo">
-              <div className="logo-icon"><Wallet size={24} /></div>
+              <div className="logo-icon"><Wallet size={18} /></div>
               Finanças
             </div>
             <TabNav />
