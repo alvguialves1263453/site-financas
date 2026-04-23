@@ -382,13 +382,18 @@ function TransactionList({ type }) {
   const { currentUser, banks, categories, getCurrentUserTransactions, addTransaction, updateTransaction, deleteTransaction } = useFinance();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [filter, setFilter] = useState({ category: '', date: '', bank: '' });
-  const [formDate, setFormDate] = useState('');
+const [filter, setFilter] = useState({ category: '', date: '', bank: '', search: '' });
 
   const catList = categories[type === 'income' ? 'income' : 'expense'];
-  const transactions = getCurrentUserTransactions().filter(t => t.type === type);
+  const allTransactions = getCurrentUserTransactions();
+  const transactions = allTransactions.filter(t => t.type === type);
+  
+  console.log('Current user:', currentUser);
+  console.log('All transactions:', allTransactions);
+  console.log('Type filter:', type);
 
   const filtered = transactions
+    .filter(t => !filter.search || t.description.toLowerCase().includes(filter.search.toLowerCase()))
     .filter(t => !filter.category || t.category === filter.category)
     .filter(t => !filter.date || t.date.startsWith(filter.date))
     .filter(t => !filter.bank || t.bankId === filter.bank)
@@ -432,6 +437,7 @@ function TransactionList({ type }) {
       </div>
       
       <div className="filter-bar" style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--border)' }}>
+        <input type="text" className="input" placeholder="Pesquisar..." value={filter.search} onChange={e => setFilter({ ...filter, search: e.target.value })} style={{ width: 200 }} />
         <select className="select" value={filter.category} onChange={e => setFilter({ ...filter, category: e.target.value })}>
           <option value="">Todas categorias</option>
           {catList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -441,6 +447,9 @@ function TransactionList({ type }) {
           {banks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
         </select>
         <input type="month" className="input" value={filter.date} onChange={e => setFilter({ ...filter, date: e.target.value })} />
+        <button className="btn btn-secondary" onClick={() => setFilter({ category: '', date: '', bank: '', search: '' })}>
+          Limpar
+        </button>
       </div>
 
       {filtered.length > 0 ? (
