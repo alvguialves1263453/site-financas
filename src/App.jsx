@@ -987,7 +987,32 @@ function HistoryPage() {
   );
 }
 
+function App() {
+  return (
+    <FinanceProvider>
+      <AppContent />
+    </FinanceProvider>
+  );
+}
+
 function AppContent() {
+  const { loading } = useFinance();
+  
+  if (loading) {
+    return (
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'center',
+        background: '#0f172a',
+        color: '#f1f5f9'
+      }}>
+        Carregando...
+      </div>
+    );
+  }
+  
   return (
     <BrowserRouter>
       <div className="app-container">
@@ -1015,14 +1040,6 @@ function AppContent() {
         </main>
       </div>
     </BrowserRouter>
-  );
-}
-
-function App() {
-  return (
-    <FinanceProvider>
-      <AppContent />
-    </FinanceProvider>
   );
 }
 

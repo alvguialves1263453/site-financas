@@ -46,6 +46,7 @@ export const FinanceProvider = ({ children }) => {
     currency: 'BRL',
     monthStart: 1
   });
+  const [loading, setLoading] = useState(true);
   
   const initialized = useRef(false);
 
@@ -65,6 +66,7 @@ export const FinanceProvider = ({ children }) => {
       setUsers(defaultUsers);
       setCurrentUser('user-1');
     }
+    setLoading(false);
     initialized.current = true;
   }, []);
 
@@ -237,6 +239,7 @@ export const FinanceProvider = ({ children }) => {
 
   return (
     <FinanceContext.Provider value={{
+      loading,
       users,
       currentUser,
       banks,
