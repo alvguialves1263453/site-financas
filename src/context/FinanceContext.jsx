@@ -23,12 +23,14 @@ const saveToStorage = (data) => {
 };
 
 export const FinanceProvider = ({ children }) => {
+  const [users, setUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [transactions, setTransactions] = useState([]);
   const [installments, setInstallments] = useState([]);
   const [fixedExpenses, setFixedExpenses] = useState([]);
   const [categories, setCategories] = useState(defaultCategories);
   const [settings, setSettings] = useState({
-    theme: 'light',
+    theme: 'dark',
     currency: 'BRL',
     monthStart: 1
   });
@@ -38,23 +40,50 @@ export const FinanceProvider = ({ children }) => {
   useEffect(() => {
     const saved = loadFromStorage();
     if (saved) {
+      setUsers(saved.users || []);
+      setCurrentUser(saved.currentUser || null);
       setTransactions(saved.transactions || []);
       setInstallments(saved.installments || []);
       setFixedExpenses(saved.fixedExpenses || []);
       setCategories(saved.categories || defaultCategories);
-      setSettings(saved.settings || { theme: 'light', currency: 'BRL', monthStart: 1 });
+      setSettings(saved.settings || { theme: 'dark', currency: 'BRL', monthStart: 1 });
+    } else {
+      const defaultUsers = [{ id: 'user-1', name: 'Usuário 1', color: '#6366f1' }];
+      setUsers(defaultUsers);
+      setCurrentUser('user-1');
     }
     initialized.current = true;
   }, []);
 
   useEffect(() => {
     if (initialized.current) {
-      saveToStorage({ transactions, installments, fixedExpenses, categories, settings });
+      saveToStorage({ users, currentUser, transactions, installments, fixedExpenses, categories, settings });
     }
-  }, [transactions, installments, fixedExpenses, categories, settings]);
+  }, [users, currentUser, transactions, installments, fixedExpenses, categories, settings]);
+
+  const addUser = (user) => {
+    const newUser = { ...user, id: 'user-' + Date.now() };
+    setUsers(prev => [...prev, newUser]);
+    return newUser;
+  };
+
+  const updateUser = (id, data) => {
+    setUsers(prev => prev.map(u => u.id === id ? { ...u, ...data } : u));
+  };
+
+  const deleteUser = (id) => {
+    setUsers(prev => prev.filter(u => u.id !== id));
+    if (currentUser === id) {
+      setCurrentUser(users[0]?.id || null);
+    }
+  };
+
+  const switchUser = (id) => {
+    setCurrentUser(id);
+  };
 
   const addTransaction = (transaction) => {
-    setTransactions(prev => [...prev, { ...transaction, id: Date.now().toString() }]);
+    setTransactions(prev => [...prev, { ...transaction, id: Date.now().toString(), userId: currentUser }]);
   };
 
   const updateTransaction = (id, data) => {
@@ -68,7 +97,8 @@ export const FinanceProvider = ({ children }) => {
   const addInstallment = (installment) => {
     const newInstallment = {
       ...installment,
-      id: Date.now().toString(),
+      id: 'inst-' + Date.now(),
+      userId: currentUser,
       paidInstallments: 0,
       status: 'active'
     };
@@ -99,7 +129,7 @@ export const FinanceProvider = ({ children }) => {
   };
 
   const addFixedExpense = (expense) => {
-    setFixedExpenses(prev => [...prev, { ...expense, id: Date.now().toString() }]);
+    setFixedExpenses(prev => [...prev, { ...expense, id: 'fixed-' + Date.now(), userId: currentUser }]);
   };
 
   const updateFixedExpense = (id, data) => {
@@ -113,7 +143,7 @@ export const FinanceProvider = ({ children }) => {
   const addCategory = (type, category) => {
     setCategories(prev => ({
       ...prev,
-      [type]: [...prev[type], { ...category, id: Date.now().toString() }]
+      [type]: [...prev[type], { ...category, id: 'cat-' + Date.now() }]
     }));
   };
 
@@ -135,18 +165,33 @@ export const FinanceProvider = ({ children }) => {
     setSettings(prev => ({ ...prev, ...data }));
   };
 
-  const getBalance = () => {
-    const totalIncome = transactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + parseFloat(t.value), 0);
-    
-    const totalExpense = transactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + parseFloat(t.value), 0);
+  const getUserTransactions = (userId) => {
+    return transactions.filter(t => t.userId === userId);
+  };
 
-    const paidInstallments = installments
+  const getCurrentUserTransactions = () => {
+    return transactions.filter(t => t.userId === currentUser);
+  };
+
+  const getAllTransactions = () => {
+    return transactions;
+  };
+
+  const getBalance = (userId = null) => {
+    const userTx = userId ? transactions.filter(t => t.userId === userId) : transactions;
+    const userInst = userId ? installments.filter(i => i.userId === userId) : installments;
+    
+    const totalIncome = userTx
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + parseFloat(t.value || 0), 0);
+    
+    const totalExpense = userTx
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + parseFloat(t.value || 0), 0);
+
+    const paidInstallments = userInst
       .filter(i => i.status === 'paid' || i.status === 'active')
-      .reduce((sum, i) => sum + (i.value / i.totalInstallments) * i.paidInstallments, 0);
+      .reduce((sum, i) => sum + (parseFloat(i.value || 0) / i.totalInstallments) * i.paidInstallments, 0);
 
     return {
       income: totalIncome,
@@ -155,13 +200,27 @@ export const FinanceProvider = ({ children }) => {
     };
   };
 
+  const getUserBalance = (userId) => {
+    return getBalance(userId);
+  };
+
+  const getTotalBalance = () => {
+    return getBalance(null);
+  };
+
   return (
     <FinanceContext.Provider value={{
+      users,
+      currentUser,
       transactions,
       installments,
       fixedExpenses,
       categories,
       settings,
+      addUser,
+      updateUser,
+      deleteUser,
+      switchUser,
       addTransaction,
       updateTransaction,
       deleteTransaction,
@@ -176,7 +235,11 @@ export const FinanceProvider = ({ children }) => {
       updateCategory,
       deleteCategory,
       updateSettings,
-      getBalance
+      getUserTransactions,
+      getCurrentUserTransactions,
+      getAllTransactions,
+      getUserBalance,
+      getTotalBalance
     }}>
       {children}
     </FinanceContext.Provider>
