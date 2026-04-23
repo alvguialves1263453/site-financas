@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
+import { HashRouter, Routes, Route, NavLink } from 'react-router-dom';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
 import { formatCurrency, formatDate, formatDateInput } from './utils/formatters';
@@ -989,7 +989,7 @@ function HistoryPage() {
 
 function AppContent() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div className="app-container">
         <header className="header">
           <div className="header-content">
@@ -1014,7 +1014,7 @@ function AppContent() {
           </Routes>
         </main>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 
