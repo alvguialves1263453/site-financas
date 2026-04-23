@@ -385,12 +385,7 @@ function TransactionList({ type }) {
 const [filter, setFilter] = useState({ category: '', date: '', bank: '', search: '' });
 
   const catList = categories[type === 'income' ? 'income' : 'expense'];
-  const allTransactions = getCurrentUserTransactions();
-  const transactions = allTransactions.filter(t => t.type === type);
-  
-  console.log('Current user:', currentUser);
-  console.log('All transactions:', allTransactions);
-  console.log('Type filter:', type);
+  const transactions = getCurrentUserTransactions().filter(t => t.type === type);
 
   const filtered = transactions
     .filter(t => !filter.search || t.description.toLowerCase().includes(filter.search.toLowerCase()))
@@ -436,8 +431,8 @@ const [filter, setFilter] = useState({ category: '', date: '', bank: '', search:
         </button>
       </div>
       
-      <div className="filter-bar" style={{ padding: '1.5rem 2rem', borderBottom: '1px solid var(--border)' }}>
-        <input type="text" className="input" placeholder="Pesquisar..." value={filter.search} onChange={e => setFilter({ ...filter, search: e.target.value })} style={{ width: 200 }} />
+      <div className="filter-bar">
+        <input type="text" className="input" placeholder="Pesquisar..." value={filter.search} onChange={e => setFilter({ ...filter, search: e.target.value })} />
         <select className="select" value={filter.category} onChange={e => setFilter({ ...filter, category: e.target.value })}>
           <option value="">Todas categorias</option>
           {catList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
