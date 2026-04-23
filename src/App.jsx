@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement } from 'chart.js';
 import { Pie, Bar } from 'react-chartjs-2';
-import { formatCurrency, formatDate, formatDateInput } from './utils/formatters';
+import { formatCurrency, formatDate, formatDateInput, maskDate, parseDate } from './utils/formatters';
 import { FinanceProvider, useFinance } from './context/FinanceContext';
 import { 
   Wallet, TrendingUp, TrendingDown, Receipt, CreditCard, Calendar, 
@@ -383,6 +383,7 @@ function TransactionList({ type }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [filter, setFilter] = useState({ category: '', date: '', bank: '' });
+  const [formDate, setFormDate] = useState('');
 
   const catList = categories[type === 'income' ? 'income' : 'expense'];
   const transactions = getCurrentUserTransactions().filter(t => t.type === type);
@@ -396,11 +397,12 @@ function TransactionList({ type }) {
   const handleSubmit = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
+    const dateValue = parseDate(formData.get('date')) || formData.get('date');
     const data = {
       type,
       value: parseFloat(formData.get('value')),
       description: formData.get('description'),
-      date: formData.get('date'),
+      date: dateValue,
       category: formData.get('category'),
       bankId: formData.get('bankId'),
       paymentMethod: formData.get('paymentMethod') || 'dinheiro'
@@ -507,7 +509,15 @@ function TransactionList({ type }) {
               </div>
               <div className="input-group">
                 <label className="input-label">Data</label>
-                <input name="date" type="date" className="input" required defaultValue={editing?.date || formatDateInput(new Date())} />
+                <input 
+                  name="date" 
+                  type="text" 
+                  className="input" 
+                  required 
+                  placeholder="DD/MM/AAAA"
+                  defaultValue={editing?.date ? formatDate(editing.date) : formDate || maskDate(new Date().toISOString().split('T')[0])}
+                  onChange={(e) => setFormDate(maskDate(e.target.value))}
+                />
               </div>
             </div>
             <div className="form-row">
@@ -550,20 +560,22 @@ function Installments() {
   const { currentUser, installments, categories, addInstallment, updateInstallment, deleteInstallment, payInstallment } = useFinance();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [formDateInstallment, setFormDateInstallment] = useState('');
 
   const userInstallments = installments.filter(i => i.userId === currentUser);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
+    const firstDateValue = parseDate(formData.get('firstDate')) || formData.get('firstDate');
     const data = {
       description: formData.get('description'),
       value: parseFloat(formData.get('value')),
       totalInstallments: parseInt(formData.get('totalInstallments')),
       category: formData.get('category'),
       paymentMethod: formData.get('paymentMethod'),
-      firstDate: formData.get('firstDate'),
-      nextDueDate: formData.get('firstDate')
+      firstDate: firstDateValue,
+      nextDueDate: firstDateValue
     };
     if (editing) updateInstallment(editing.id, data);
     else addInstallment(data);
@@ -657,7 +669,15 @@ function Installments() {
             <div className="form-row">
               <div className="input-group">
                 <label className="input-label">Primeira Parcela</label>
-                <input name="firstDate" type="date" className="input" required defaultValue={editing?.firstDate || formatDateInput(new Date())} />
+                <input 
+                  name="firstDate" 
+                  type="text" 
+                  className="input" 
+                  required 
+                  placeholder="DD/MM/AAAA"
+                  defaultValue={editing?.firstDate ? formatDate(editing.firstDate) : formDateInstallment || maskDate(new Date().toISOString().split('T')[0])}
+                  onChange={(e) => setFormDateInstallment(maskDate(e.target.value))}
+                />
               </div>
               <div className="input-group">
                 <label className="input-label">Categoria</label>

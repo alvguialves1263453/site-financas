@@ -18,6 +18,25 @@ export const formatDateInput = (date) => {
   return d.toISOString().split('T')[0];
 };
 
+export const maskDate = (value) => {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+};
+
+export const parseDate = (value) => {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length !== 8) return null;
+  const day = parseInt(digits.slice(0, 2));
+  const month = parseInt(digits.slice(2, 4));
+  const year = parseInt(digits.slice(4));
+  if (day < 1 || day > 31 || month < 1 || month > 12) return null;
+  const date = new Date(year, month - 1, day);
+  if (date.getMonth() !== month - 1 || date.getFullYear() !== year) return null;
+  return date.toISOString().split('T')[0];
+};
+
 export const getMonthName = (monthIndex) => {
   const months = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
