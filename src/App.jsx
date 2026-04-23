@@ -7,13 +7,14 @@ import { FinanceProvider, useFinance } from './context/FinanceContext';
 import { 
   Wallet, TrendingUp, TrendingDown, Receipt, CreditCard, Calendar, 
   PieChart, History, Settings, Plus, Trash2, Edit, X,
-  Users, User, PiggyBank, LogOut
+  Users, User, PiggyBank, LogOut, Building
 } from 'lucide-react';
 import './index.css';
 
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, PointElement, LineElement);
 
 const colors = ['#6366f1', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+const bankColors = ['#ffcc00', '#ec7000', '#ff6600', '#ec0000', '#004773', '#8a05be', '#000000', '#20a820', '#009c3b', '#ffde00', '#00aace', '#e31837'];
 
 function UserSelector() {
   const { users, currentUser, switchUser, addUser } = useFinance();
@@ -222,6 +223,7 @@ function TabNav() {
     { path: '/entradas', icon: TrendingUp, label: 'Entr' },
     { path: '/gastos', icon: TrendingDown, label: 'Gast' },
     { path: '/parcelamentos', icon: CreditCard, label: 'Parc' },
+    { path: '/bancos', icon: Building, label: 'Banc' },
     { path: '/categorias', icon: PieChart, label: 'Cat' },
     { path: '/fixos', icon: Calendar, label: 'Fix' },
     { path: '/historico', icon: History, label: 'Hist' },
@@ -377,10 +379,10 @@ function Dashboard() {
 }
 
 function TransactionList({ type }) {
-  const { currentUser, categories, getCurrentUserTransactions, addTransaction, updateTransaction, deleteTransaction } = useFinance();
+  const { currentUser, banks, categories, getCurrentUserTransactions, addTransaction, updateTransaction, deleteTransaction } = useFinance();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [filter, setFilter] = useState({ category: '', date: '' });
+  const [filter, setFilter] = useState({ category: '', date: '', bank: '' });
 
   const catList = categories[type === 'income' ? 'income' : 'expense'];
   const transactions = getCurrentUserTransactions().filter(t => t.type === type);
@@ -388,6 +390,7 @@ function TransactionList({ type }) {
   const filtered = transactions
     .filter(t => !filter.category || t.category === filter.category)
     .filter(t => !filter.date || t.date.startsWith(filter.date))
+    .filter(t => !filter.bank || t.bankId === filter.bank)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const handleSubmit = (e) => {
@@ -399,12 +402,18 @@ function TransactionList({ type }) {
       description: formData.get('description'),
       date: formData.get('date'),
       category: formData.get('category'),
+      bankId: formData.get('bankId'),
       paymentMethod: formData.get('paymentMethod') || 'dinheiro'
     };
     if (editing) updateTransaction(editing.id, data);
     else addTransaction(data);
     setIsModalOpen(false);
     setEditing(null);
+  };
+
+  const openEdit = (t) => {
+    setEditing(t);
+    setIsModalOpen(true);
   };
 
   const total = filtered.reduce((s, t) => s + parseFloat(t.value || 0), 0);
@@ -425,6 +434,10 @@ function TransactionList({ type }) {
           <option value="">Todas categorias</option>
           {catList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
+        <select className="select" value={filter.bank} onChange={e => setFilter({ ...filter, bank: e.target.value })}>
+          <option value="">Todos bancos</option>
+          {banks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
         <input type="month" className="input" value={filter.date} onChange={e => setFilter({ ...filter, date: e.target.value })} />
       </div>
 
@@ -433,6 +446,7 @@ function TransactionList({ type }) {
           <thead>
             <tr>
               <th>Descrição</th>
+              <th>Banco</th>
               <th>Categoria</th>
               <th>Data</th>
               <th>Forma</th>
@@ -443,16 +457,23 @@ function TransactionList({ type }) {
           <tbody>
             {filtered.map(t => {
               const cat = catList.find(c => c.id === t.category);
+              const bank = banks.find(b => b.id === t.bankId);
               return (
                 <tr key={t.id}>
                   <td>{t.description}</td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: bank?.color || '#666' }} />
+                      {bank?.name || '-'}
+                    </div>
+                  </td>
                   <td><span className="badge badge-info">{cat ? cat.name : '-'}</span></td>
                   <td>{formatDate(t.date)}</td>
                   <td className="text-muted">{t.paymentMethod}</td>
                   <td className={valueClass}>{formatCurrency(t.value)}</td>
                   <td>
                     <div className="flex gap-2">
-                      <button className="icon-btn" onClick={() => { setEditing(t); setIsModalOpen(true); }}><Edit size={16} /></button>
+                      <button className="icon-btn" onClick={() => openEdit(t)}><Edit size={16} /></button>
                       <button className="icon-btn danger" onClick={() => deleteTransaction(t.id)}><Trash2 size={16} /></button>
                     </div>
                   </td>
@@ -462,7 +483,7 @@ function TransactionList({ type }) {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={4}><strong>Total</strong></td>
+              <td colSpan={5}><strong>Total</strong></td>
               <td className={valueClass}><strong>{formatCurrency(total)}</strong></td>
               <td></td>
             </tr>
@@ -491,21 +512,28 @@ function TransactionList({ type }) {
             </div>
             <div className="form-row">
               <div className="input-group">
+                <label className="input-label">Banco</label>
+                <select name="bankId" className="select" required defaultValue={editing?.bankId || banks[0]?.id || ''}>
+                  {banks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </div>
+              <div className="input-group">
                 <label className="input-label">Categoria</label>
                 <select name="category" className="select" required defaultValue={editing?.category || catList[0]?.id || ''}>
                   {catList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
-              <div className="input-group">
-                <label className="input-label">Forma de Pagamento</label>
-                <select name="paymentMethod" className="select" defaultValue={editing?.paymentMethod || 'dinheiro'}>
-                  <option value="dinheiro">Dinheiro</option>
-                  <option value="cartao-credito">Cartão de Crédito</option>
-                  <option value="cartao-debito">Cartão de Débito</option>
-                  <option value="pix">PIX</option>
-                  <option value="transferencia">Transferência</option>
-                </select>
-              </div>
+            </div>
+            <div className="input-group">
+              <label className="input-label">Forma de Pagamento</label>
+              <select name="paymentMethod" className="select" defaultValue={editing?.paymentMethod || 'dinheiro'}>
+                <option value="dinheiro">Dinheiro</option>
+                <option value="cartao-credito">Cartão de Crédito</option>
+                <option value="cartao-debito">Cartão de Débito</option>
+                <option value="pix">PIX</option>
+                <option value="transferencia">Transferência</option>
+                <option value="boleto">Boleto</option>
+              </select>
             </div>
           </div>
           <div className="modal-footer">
@@ -645,6 +673,76 @@ function Installments() {
                 <option value="cartao-debito">Cartão de Débito</option>
                 <option value="financiamento">Financiamento</option>
               </select>
+            </div>
+          </div>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={() => { setIsModalOpen(false); setEditing(null); }}>Cancelar</button>
+            <button type="submit" className="btn btn-primary">Salvar</button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+}
+
+function Banks() {
+  const { banks, addBank, updateBank, deleteBank } = useFinance();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = {
+      name: formData.get('name'),
+      color: formData.get('color') || bankColors[0]
+    };
+    if (editing) updateBank(editing.id, data);
+    else addBank(data);
+    setIsModalOpen(false);
+    setEditing(null);
+  };
+
+  const openEdit = (b) => {
+    setEditing(b);
+    setIsModalOpen(true);
+  };
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <h3 className="card-title">Bancos</h3>
+        <button className="btn btn-primary" onClick={() => { setEditing(null); setIsModalOpen(true); }}>
+          <Plus size={18} /> Novo Banco
+        </button>
+      </div>
+      <div style={{ padding: '1.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.75rem' }}>
+        {banks.map(b => (
+          <div key={b.id} className="flex items-center gap-2" style={{ padding: '0.75rem 1rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
+            <span style={{ width: 12, height: 12, borderRadius: '50%', background: b.color }} />
+            <span>{b.name}</span>
+            <button className="icon-btn" onClick={() => openEdit(b)}><Edit size={14} /></button>
+            <button className="icon-btn danger" onClick={() => deleteBank(b.id)}><Trash2 size={14} /></button>
+          </div>
+        ))}
+      </div>
+      <Modal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditing(null); }} title={editing ? 'Editar Banco' : 'Novo Banco'}>
+        <form onSubmit={handleSubmit}>
+          <div className="modal-body">
+            <div className="input-group mb-4">
+              <label className="input-label">Nome do Banco</label>
+              <input name="name" className="input" required placeholder="Ex: Nubank, Itau..." defaultValue={editing?.name || ''} />
+            </div>
+            <div className="input-group">
+              <label className="input-label">Cor</label>
+              <div className="flex gap-2" style={{ flexWrap: 'wrap', marginTop: '0.5rem' }}>
+                {bankColors.map(c => (
+                  <label key={c} style={{ display: 'flex', cursor: 'pointer' }}>
+                    <input type="radio" name="color" value={c} defaultChecked={c === (editing?.color || bankColors[0])} />
+                    <span style={{ width: 28, height: 28, borderRadius: '50%', background: c }} />
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
           <div className="modal-footer">
@@ -812,8 +910,8 @@ function FixedExpenses() {
 }
 
 function HistoryPage() {
-  const { currentUser, getCurrentUserTransactions, getAllTransactions, users } = useFinance();
-  const [filter, setFilter] = useState({ type: '', search: '', user: '' });
+  const { currentUser, getCurrentUserTransactions, getAllTransactions, users, banks } = useFinance();
+  const [filter, setFilter] = useState({ type: '', search: '', user: '', bank: '' });
 
   const allTransactions = getAllTransactions();
   const userTransactions = getCurrentUserTransactions();
@@ -824,6 +922,7 @@ function HistoryPage() {
   const filtered = items
     .filter(item => !filter.type || item.type === filter.type)
     .filter(item => !filter.search || item.description.toLowerCase().includes(filter.search.toLowerCase()))
+    .filter(item => !filter.bank || item.bankId === filter.bank)
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const valueClass = (item) => item.type === 'income' ? 'text-success' : 'text-danger';
@@ -837,6 +936,10 @@ function HistoryPage() {
             <option value="">Meu Histórico</option>
             <option value="all">Histórico Completo</option>
           </select>
+          <select className="select" value={filter.bank} onChange={e => setFilter({ ...filter, bank: e.target.value })}>
+            <option value="">Todos bancos</option>
+            {banks.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
           <select className="select" value={filter.type} onChange={e => setFilter({ ...filter, type: e.target.value })}>
             <option value="">Todos</option>
             <option value="income">Entradas</option>
@@ -848,15 +951,22 @@ function HistoryPage() {
       {filtered.length > 0 ? (
         <table className="table">
           <thead>
-            <tr><th>Data</th><th>Descrição</th><th>Usuário</th><th>Tipo</th><th>Valor</th></tr>
+            <tr><th>Data</th><th>Descrição</th><th>Banco</th><th>Usuário</th><th>Tipo</th><th>Valor</th></tr>
           </thead>
           <tbody>
             {filtered.map((item, idx) => {
               const user = users.find(u => u.id === item.userId);
+              const bank = banks.find(b => b.id === item.bankId);
               return (
                 <tr key={idx}>
                   <td>{formatDate(item.date)}</td>
                   <td><div>{item.description}</div></td>
+                  <td>
+                    <div className="flex items-center gap-2">
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: bank?.color || '#666' }} />
+                      {bank?.name || '-'}
+                    </div>
+                  </td>
                   <td>
                     <div className="flex items-center gap-2">
                       <span style={{ width: 8, height: 8, borderRadius: '50%', background: user?.color }} />
@@ -897,6 +1007,7 @@ function AppContent() {
             <Route path="/entradas" element={<TransactionList type="income" />} />
             <Route path="/gastos" element={<TransactionList type="expense" />} />
             <Route path="/parcelamentos" element={<Installments />} />
+            <Route path="/bancos" element={<Banks />} />
             <Route path="/categorias" element={<Categories />} />
             <Route path="/fixos" element={<FixedExpenses />} />
             <Route path="/historico" element={<HistoryPage />} />

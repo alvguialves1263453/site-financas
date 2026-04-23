@@ -5,6 +5,17 @@ const FinanceContext = createContext();
 
 const STORAGE_KEY = 'site-financas-data';
 
+const defaultBanks = [
+  { id: 'bb', name: 'Banco do Brasil', color: '#ffcc00' },
+  { id: 'itau', name: 'Itaú', color: '#ec7000' },
+  { id: 'bradesco', name: 'Bradesco', color: '#ff6600' },
+  { id: 'santander', name: 'Santander', color: '#ec0000' },
+  { id: 'caixa', name: 'Caixa', color: '#004773' },
+  { id: 'nubank', name: 'Nubank', color: '#8a05be' },
+  { id: 'inter', name: 'Inter', color: '#000000' },
+  { id: 'picpay', name: 'PicPay', color: '#20a820' },
+];
+
 const loadFromStorage = () => {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
@@ -25,6 +36,7 @@ const saveToStorage = (data) => {
 export const FinanceProvider = ({ children }) => {
   const [users, setUsers] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
+  const [banks, setBanks] = useState(defaultBanks);
   const [transactions, setTransactions] = useState([]);
   const [installments, setInstallments] = useState([]);
   const [fixedExpenses, setFixedExpenses] = useState([]);
@@ -42,6 +54,7 @@ export const FinanceProvider = ({ children }) => {
     if (saved) {
       setUsers(saved.users || []);
       setCurrentUser(saved.currentUser || null);
+      setBanks(saved.banks || defaultBanks);
       setTransactions(saved.transactions || []);
       setInstallments(saved.installments || []);
       setFixedExpenses(saved.fixedExpenses || []);
@@ -57,9 +70,9 @@ export const FinanceProvider = ({ children }) => {
 
   useEffect(() => {
     if (initialized.current) {
-      saveToStorage({ users, currentUser, transactions, installments, fixedExpenses, categories, settings });
+      saveToStorage({ users, currentUser, banks, transactions, installments, fixedExpenses, categories, settings });
     }
-  }, [users, currentUser, transactions, installments, fixedExpenses, categories, settings]);
+  }, [users, currentUser, banks, transactions, installments, fixedExpenses, categories, settings]);
 
   const addUser = (user) => {
     const newUser = { ...user, id: 'user-' + Date.now() };
@@ -80,6 +93,20 @@ export const FinanceProvider = ({ children }) => {
 
   const switchUser = (id) => {
     setCurrentUser(id);
+  };
+
+  const addBank = (bank) => {
+    const newBank = { ...bank, id: 'bank-' + Date.now() };
+    setBanks(prev => [...prev, newBank]);
+    return newBank;
+  };
+
+  const updateBank = (id, data) => {
+    setBanks(prev => prev.map(b => b.id === id ? { ...b, ...data } : b));
+  };
+
+  const deleteBank = (id) => {
+    setBanks(prev => prev.filter(b => b.id !== id));
   };
 
   const addTransaction = (transaction) => {
@@ -212,6 +239,7 @@ export const FinanceProvider = ({ children }) => {
     <FinanceContext.Provider value={{
       users,
       currentUser,
+      banks,
       transactions,
       installments,
       fixedExpenses,
@@ -221,6 +249,9 @@ export const FinanceProvider = ({ children }) => {
       updateUser,
       deleteUser,
       switchUser,
+      addBank,
+      updateBank,
+      deleteBank,
       addTransaction,
       updateTransaction,
       deleteTransaction,
