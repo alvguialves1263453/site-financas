@@ -383,6 +383,11 @@ function TransactionList({ type }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
 const [filter, setFilter] = useState({ category: '', date: '', bank: '', search: '' });
+  const [formDate, setFormDate] = useState('');
+  const getTodayStr = () => {
+    const t = new Date();
+    return String(t.getDate()).padStart(2, '0') + '/' + String(t.getMonth() + 1).padStart(2, '0') + '/' + t.getFullYear();
+  };
 
   const catList = categories[type === 'income' ? 'income' : 'expense'];
   const transactions = getCurrentUserTransactions().filter(t => t.type === type);
@@ -519,7 +524,7 @@ const [filter, setFilter] = useState({ category: '', date: '', bank: '', search:
                   className="input" 
                   required 
                   placeholder="DD/MM/AAAA"
-                  defaultValue={editing?.date ? formatDate(editing.date) : formDate || maskDate(new Date().toISOString().split('T')[0])}
+                  defaultValue={editing?.date ? formatDate(editing.date) : formDate || getTodayStr()}
                   onChange={(e) => setFormDate(maskDate(e.target.value))}
                 />
               </div>
@@ -565,6 +570,10 @@ function Installments() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [formDateInstallment, setFormDateInstallment] = useState('');
+  const getInstallmentTodayStr = () => {
+    const t = new Date();
+    return String(t.getDate()).padStart(2, '0') + '/' + String(t.getMonth() + 1).padStart(2, '0') + '/' + t.getFullYear();
+  };
 
   const userInstallments = installments.filter(i => i.userId === currentUser);
 
@@ -679,7 +688,7 @@ function Installments() {
                   className="input" 
                   required 
                   placeholder="DD/MM/AAAA"
-                  defaultValue={editing?.firstDate ? formatDate(editing.firstDate) : formDateInstallment || maskDate(new Date().toISOString().split('T')[0])}
+                  defaultValue={editing?.firstDate ? formatDate(editing.firstDate) : formDateInstallment || getInstallmentTodayStr()}
                   onChange={(e) => setFormDateInstallment(maskDate(e.target.value))}
                 />
               </div>
